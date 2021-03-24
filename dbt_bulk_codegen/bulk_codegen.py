@@ -8,6 +8,7 @@ TODO: Support custom destination for generated source and base model files
 TODO (DONE): Allow bulk-codegen to live in another directory inside the dbt project rather than only in dbt proj
 TODO: Different method for supply source database and schema, and running bulk-codegen (e.g. CLI, config file)
 TODO (DONE): If a source file already exists, we don't want to overwrite it. Allow for different options here
+TODO: Maintain internal state for couple components, including shape of packages.
 TODO (DONE): If a base model file already exists, we don't want to overwrite it. Align on different options here
 TODO: Create setup.py and register project to PyPI
 TODO: Handle for if profiles.yml is not at ~/.dbt/profiles.yml, which can be set via CLI or environment variable
@@ -130,14 +131,15 @@ def src_yml_scan(source_mappings):
     return source_with_table_mappings
 
 
-def all_base_commands_generator(source_table_mappings):
+def all_base_commands_generator(source_table_mappings, source_destinations_folder: str):
     """Compile all base model commands per source and table within each source."""
     source_with_base_command_mappings = list()
     for source_mapping in source_table_mappings:
         for source_name, mapping_data in source_mapping.items():
             logging.info(f"Creating base model generation commands for source schema: {source_name}")
+            destination_folder = os.path.join(source_destinations_folder, source_name)
             source_base_model_commands = base_command_generator(
-                source_name, mapping_data.get("tables"), destination_folder_path=f'models/{source_name}')
+                source_name, mapping_data.get("tables"), destination_folder_path=destination_folder)
 
             source_with_base_command_mappings.append({source_name: source_base_model_commands})
 
@@ -219,21 +221,22 @@ def bash_run_and_make_files(cmd_type, command_mappings: List[dict], if_exists: s
 
 def main():
     """Primary called entrypoint."""
-    source_database_name = 'lake'
-    source_schemas_list = ['fivetran_log', 'sales']
-    custom_dbt_project_path = None  # Only necessary if not running script from within a dbt project
+    source_database_name = 'lake'  # List the name of the database where source schemas are located
+    source_schemas_list = ['google_ads', 'fivetran_log']  # List all schemas to create staging sources and models for
+    custom_dbt_project_path = '/Users/johnathanbrooks/dbt_projects/betterhelp'  # Only necessary if not running script from within a dbt project
+    staging_folder_path = 'models/staging'  # Change if staging models aren't stored at this project path
     if_exists_behavior = 'skip'  # Either 'replace', 'append', or 'skip' for how to handle if file already exists
 
     # Fetch path to dbt project
     dbt_project_directory = fetch_dbt_project(custom_project_path=custom_dbt_project_path)
-    models_directory = os.path.join(dbt_project_directory, 'models')  # Change if needed, manually for now
+    staging_models_directory = os.path.join(dbt_project_directory, staging_folder_path)
 
     # Run `dbt deps` to fetch codegen and other packages
     run_dbt_deps(dbt_project_directory)
 
     # Generate source command(s), and create YAML files for each source schema
     source_command_mappings = source_cmd_generator(source_database_name, source_schemas_list,
-                                                   destination_folder_path=models_directory)
+                                                   destination_folder_path=staging_models_directory)
     bash_run_and_make_files('src', source_command_mappings, if_exists=if_exists_behavior,
                             project_directory=dbt_project_directory)
 
@@ -241,7 +244,8 @@ def main():
     source_command_mappings = src_yml_scan(source_command_mappings)
 
     # Generate base staging model commands, and create the dbt staging SQL models
-    source_with_base_command_mappings = all_base_commands_generator(source_command_mappings)
+    source_with_base_command_mappings = all_base_commands_generator(source_command_mappings,
+                                                                    source_destinations_folder=staging_folder_path)
     bash_run_and_make_files('base', source_with_base_command_mappings, if_exists=if_exists_behavior,
                             project_directory=dbt_project_directory)
 
