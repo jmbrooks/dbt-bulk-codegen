@@ -222,6 +222,7 @@ def main():
     source_database_name = 'lake'
     source_schemas_list = ['fivetran_log', 'sales']
     custom_dbt_project_path = None  # Only necessary if not running script from within a dbt project
+    if_exists_behavior = 'skip'  # Either 'replace', 'append', or 'skip' for how to handle if file already exists
 
     # Fetch path to dbt project
     dbt_project_directory = fetch_dbt_project(custom_project_path=custom_dbt_project_path)
@@ -233,7 +234,7 @@ def main():
     # Generate source command(s), and create YAML files for each source schema
     source_command_mappings = source_cmd_generator(source_database_name, source_schemas_list,
                                                    destination_folder_path=models_directory)
-    bash_run_and_make_files('src', source_command_mappings, if_exists='skip',
+    bash_run_and_make_files('src', source_command_mappings, if_exists=if_exists_behavior,
                             project_directory=dbt_project_directory)
 
     # Modify source command mappings to include base model destination paths
@@ -241,7 +242,7 @@ def main():
 
     # Generate base staging model commands, and create the dbt staging SQL models
     source_with_base_command_mappings = all_base_commands_generator(source_command_mappings)
-    bash_run_and_make_files('base', source_with_base_command_mappings, if_exists='skip',
+    bash_run_and_make_files('base', source_with_base_command_mappings, if_exists=if_exists_behavior,
                             project_directory=dbt_project_directory)
 
     logging.info('bulk-codegen processing completed.')
