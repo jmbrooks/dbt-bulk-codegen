@@ -5,10 +5,10 @@ Read dbt_project file for sources, creates src file, generate model
 
 For Productionization/Open Sourcing, list of necessary next steps:
 TODO: Support custom destination for generated source and base model files
-TODO: Allow bulk-codegen to live in another directory inside the dbt project rather than
-TODO: Allow user to optionally specify a list of source schemas
-TODO: If a source file already exists, we don't want to overwrite it. Need to align on expected behavior & handle for it
-TODO: If a base model file already exists, we don't want to overwrite it. Align on expected behavior & handle for it
+TODO (DONE): Allow bulk-codegen to live in another directory inside the dbt project rather than only in dbt proj
+TODO: Different method for supply source database and schema, and running bulk-codegen (e.g. CLI, config file)
+TODO (DONE): If a source file already exists, we don't want to overwrite it. Allow for different options here
+TODO (DONE): If a base model file already exists, we don't want to overwrite it. Align on different options here
 TODO: Create setup.py and register project to PyPI
 TODO: Handle for if profiles.yml is not at ~/.dbt/profiles.yml, which can be set via CLI or environment variable
 TODO: Create LICENSE file, likely with Apache 2.0 License (needs confirmation w/ management)
